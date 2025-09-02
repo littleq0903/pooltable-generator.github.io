@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pool Table Pattern Generator</title>
+    <style>
+        :root {
+            --table-aspect-ratio: 2 / 1;
+            /* UPDATED: Ball ratio changed as requested */
+            --ball-to-table-ratio: 2.25%;
+            --cloth-color: #5cb85c;
+            --frame-wood-color: #8B4513;
+            --diamond-color: rgba(255, 255, 255, 0.8);
+            --rail-padding: 2.5vw;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #333;
+            color: #fff;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 1rem;
+            box-sizing: border-box;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .table-container {
+            width: 100%;
+            max-width: 90vw;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .table-wrapper {
+            position: relative;
+            width: 100%;
+            aspect-ratio: var(--table-aspect-ratio);
+            background-color: var(--frame-wood-color);
+            border-radius: 10px;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.5);
+            padding: var(--rail-padding);
+            box-sizing: border-box;
+        }
+
+        #playing-surface {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            background-color: var(--cloth-color);
+            box-shadow: inset 0 0 15px rgba(0,0,0,0.4);
+            z-index: 1;
+        }
+        
+        .diamonds-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 3;
+        }
+
+        .diamond {
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            background-color: var(--diamond-color);
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            box-shadow: 0 0 3px rgba(0,0,0,0.5);
+        }
+        
+        .head-string {
+            position: absolute;
+            top: 0;
+            left: 25%;
+            width: 1px;
+            height: 100%;
+            background-color: rgba(255, 255, 255, 0.2);
+            z-index: 2;
+        }
+
+        .foot-spot {
+            position: absolute;
+            top: 50%;
+            left: 75%;
+            width: 8px;
+            height: 8px;
+            background-color: rgba(255, 255, 255, 0.2);
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 2;
+        }
+
+        .ball {
+            position: absolute;
+            width: var(--ball-to-table-ratio);
+            padding-bottom: var(--ball-to-table-ratio);
+            height: 0;
+            border-radius: 50%;
+            box-shadow: 2px 2px 5px rgba(0,0,0,0.4);
+            transform: translate(-50%, -50%);
+            background-clip: padding-box;
+            user-select: none;
+            z-index: 5;
+            background-image: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.7) 0%, rgba(255,255,255,0) 15%), 
+                              radial-gradient(circle at center, rgba(255,255,255,0.2) 0%, rgba(0,0,0,0.2) 100%);
+            overflow: hidden;
+            display: grid;
+            place-items: center;
+        }
+
+        .ball-stripe {
+            position: absolute;
+            height: 50%;
+            width: 100%;
+            background-color: white;
+            z-index: 0;
+        }
+
+        .ball-number {
+            position: relative;
+            background-color: white;
+            border-radius: 50%;
+            width: 50%;
+            height: 50%;
+            font-size: 0.8em;
+            font-weight: bold;
+            color: black;
+            z-index: 1;
+            box-shadow: inset 0 0 3px rgba(0,0,0,0.2);
+            display: grid;
+            place-items: center;
+        }
+        
+        .ball[data-ball-id="8"] .ball-number {
+            color: white;
+            background-color: black;
+            box-shadow: inset 0 0 3px rgba(255,255,255,0.2);
+        }
+
+        .controls {
+            margin-top: 20px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .controls button, .controls fieldset {
+            background-color: #444;
+            padding: 10px;
+            border-radius: 5px;
+            border: none;
+        }
+
+        .controls button { cursor: pointer; color: white; font-size: 16px; }
+    </style>
+</head>
+<body>
+
+    <h1>Kitchen Drill Table Pattern Generator</h1>
+
+    <div class="table-container">
+        <div class="table-wrapper" id="table-wrapper">
+            <div id="playing-surface">
+                <div class="head-string"></div>
+                <div class="foot-spot"></div>
+            </div>
+            <div class="diamonds-container" id="diamonds-container"></div>
+        </div>
+    </div>
+
+    <div class="controls">
+        <button id="generate-btn">Generate Random Pattern</button>
+        <fieldset>
+            <legend>Placement Area</legend>
+            <label><input type="radio" name="area" value="full" checked> Full Table</label>
+            <label><input type="radio" name="area" value="kitchen"> Inside Kitchen</label>
+            <label><input type="radio" name="area" value="half_kitchen"> Inside Half Kitchen</label>
+        </fieldset>
+    </div>
+
+    <script>
+        const playingSurface = document.getElementById('playing-surface');
+        const generateBtn = document.getElementById('generate-btn');
+        const diamondsContainer = document.getElementById('diamonds-container');
+        const tableWrapper = document.getElementById('table-wrapper');
+        
+        const BALL_COLORS = {
+            1: '#FDC400', 2: '#286FC3', 3: '#D21C26', 4: '#EC5CA3', 5: '#F26E0B',
+            6: '#3EA861', 7: '#A65D2A', 8: '#1A1A1A', 9: '#FDC400', 10: '#286FC3',
+            11: '#D21C26', 12: '#EC5CA3', 13: '#F26E0B', 14: '#3EA861', 15: '#A65D2A'
+        };
+
+        function setupTableElements() {
+            diamondsContainer.innerHTML = '';
+            
+            const railPaddingPx = tableWrapper.offsetWidth * (parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--rail-padding')) / parseFloat(getComputedStyle(document.documentElement).fontSize) * 0.0625);
+            const diamondOffsetFromEdge = `calc(var(--rail-padding) / 2)`;
+
+            // Long rails (top/bottom): 6 diamonds
+            for (let i = 1; i <= 6; i++) {
+                const pos = (i / 7) * 100;
+                ['top', 'bottom'].forEach(side => {
+                    const diamond = document.createElement('div');
+                    diamond.className = 'diamond';
+                    diamond.style.left = `calc(${pos}% - ${diamond.offsetWidth / 2}px)`;
+                    diamond.style[side] = diamondOffsetFromEdge;
+                    diamondsContainer.appendChild(diamond);
+                });
+            }
+            // Short rails (left/right): 3 diamonds
+            for (let i = 1; i <= 3; i++) {
+                const pos = (i / 4) * 100;
+                ['left', 'right'].forEach(side => {
+                    const diamond = document.createElement('div');
+                    diamond.className = 'diamond';
+                    diamond.style.top = `calc(${pos}% - ${diamond.offsetHeight / 2}px)`;
+                    diamond.style[side] = diamondOffsetFromEdge;
+                    diamondsContainer.appendChild(diamond);
+                });
+            }
+        }
+        
+        function createBall(num) {
+            const ball = document.createElement('div');
+            ball.className = 'ball';
+            ball.dataset.ballId = num;
+
+            const color = BALL_COLORS[num];
+            const isStripe = num > 8;
+
+            ball.style.backgroundColor = color;
+            let innerHTML = '';
+            if (isStripe) {
+                innerHTML += `<div class="ball-stripe"></div>`;
+            }
+            innerHTML += `<div class="ball-number"><span>${num}</span></div>`;
+            ball.innerHTML = innerHTML;
+
+            return ball;
+        }
+
+        function generatePattern() {
+            playingSurface.querySelectorAll('.ball').forEach(b => b.remove());
+
+            const surfaceRect = playingSurface.getBoundingClientRect();
+            const ballDiameter = surfaceRect.width * (parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--ball-to-table-ratio')) / 100);
+            const ballRadius = ballDiameter / 2;
+            
+            const placementArea = document.querySelector('input[name="area"]:checked').value;
+            
+            const safeMarginY = ballRadius / surfaceRect.height * 100;
+            const safeMarginX = ballRadius / surfaceRect.width * 100;
+
+            let yMin = safeMarginY, yMax = 100 - safeMarginY;
+            let xMin = safeMarginX, xMax = 100 - safeMarginX;
+            
+            if (placementArea === 'kitchen') {
+                xMax = 25 - safeMarginX;
+            } else if (placementArea === 'half_kitchen') {
+                xMax = 25 - safeMarginX;
+                if (Math.random() < 0.5) { yMax = 50 - safeMarginY; } 
+                else { yMin = 50 + safeMarginY; }
+            }
+
+            const placedBalls = [];
+            for (let i = 1; i <= 15; i++) {
+                const ballElement = createBall(i);
+                let validPosition = false, attempts = 0;
+                
+                while (!validPosition && attempts < 200) {
+                    const newPos = { x: Math.random() * (xMax - xMin) + xMin, y: Math.random() * (yMax - yMin) + yMin };
+                    let collision = false;
+                    for (const placedBall of placedBalls) {
+                        const dx = (newPos.x - placedBall.x) / 100 * surfaceRect.width;
+                        const dy = (newPos.y - placedBall.y) / 100 * surfaceRect.height;
+                        const distance = Math.sqrt(dx * dx + dy * dy);
+                        if (distance < ballDiameter) { collision = true; break; }
+                    }
+                    if (!collision) {
+                        placedBalls.push(newPos);
+                        ballElement.style.left = `${newPos.x}%`;
+                        ballElement.style.top = `${newPos.y}%`;
+                        validPosition = true;
+                    }
+                    attempts++;
+                }
+                playingSurface.appendChild(ballElement);
+            }
+        }
+
+        function init() {
+            setupTableElements();
+            generatePattern();
+        }
+
+        generateBtn.addEventListener('click', generatePattern);
+        window.addEventListener('load', init);
+        window.addEventListener('resize', init);
+    </script>
+</body>
+</html>
