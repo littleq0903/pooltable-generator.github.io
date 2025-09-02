@@ -3,11 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pool Table Pattern Generator</title>
+    <title>Kitchen 14-1 Drill Generator</title>
     <style>
         :root {
             --table-aspect-ratio: 2 / 1;
-            /* UPDATED: Ball ratio changed as requested */
             --ball-to-table-ratio: 2.25%;
             --cloth-color: #5cb85c;
             --frame-wood-color: #8B4513;
@@ -118,37 +117,34 @@
             background-image: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.7) 0%, rgba(255,255,255,0) 15%), 
                               radial-gradient(circle at center, rgba(255,255,255,0.2) 0%, rgba(0,0,0,0.2) 100%);
             overflow: hidden;
-            display: grid;
-            place-items: center;
         }
 
         .ball-stripe {
             position: absolute;
+            top: 25%;
+            left: 0;
             height: 50%;
             width: 100%;
-            background-color: white;
-            z-index: 0;
+            z-index: 1;
         }
 
         .ball-number {
-            position: relative;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
             background-color: white;
             border-radius: 50%;
             width: 50%;
             height: 50%;
-            font-size: 0.8em;
+            /* UPDATED: font size reduced by another pixel */
+            font-size: calc(0.8em - 3.5px);
             font-weight: bold;
             color: black;
-            z-index: 1;
+            z-index: 2;
             box-shadow: inset 0 0 3px rgba(0,0,0,0.2);
             display: grid;
             place-items: center;
-        }
-        
-        .ball[data-ball-id="8"] .ball-number {
-            color: white;
-            background-color: black;
-            box-shadow: inset 0 0 3px rgba(255,255,255,0.2);
         }
 
         .controls {
@@ -172,7 +168,7 @@
 </head>
 <body>
 
-    <h1>Kitchen Drill Table Pattern Generator</h1>
+    <h1>Kitchen 14-1 Drill Generator</h1>
 
     <div class="table-container">
         <div class="table-wrapper" id="table-wrapper">
@@ -209,16 +205,15 @@
         function setupTableElements() {
             diamondsContainer.innerHTML = '';
             
-            const railPaddingPx = tableWrapper.offsetWidth * (parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--rail-padding')) / parseFloat(getComputedStyle(document.documentElement).fontSize) * 0.0625);
             const diamondOffsetFromEdge = `calc(var(--rail-padding) / 2)`;
 
-            // Long rails (top/bottom): 6 diamonds
-            for (let i = 1; i <= 6; i++) {
-                const pos = (i / 7) * 100;
+            // Long rails (top/bottom): 7 diamonds
+            for (let i = 1; i <= 7; i++) {
+                const pos = (i / 8) * 100;
                 ['top', 'bottom'].forEach(side => {
                     const diamond = document.createElement('div');
                     diamond.className = 'diamond';
-                    diamond.style.left = `calc(${pos}% - ${diamond.offsetWidth / 2}px)`;
+                    diamond.style.left = `${pos}%`;
                     diamond.style[side] = diamondOffsetFromEdge;
                     diamondsContainer.appendChild(diamond);
                 });
@@ -229,7 +224,7 @@
                 ['left', 'right'].forEach(side => {
                     const diamond = document.createElement('div');
                     diamond.className = 'diamond';
-                    diamond.style.top = `calc(${pos}% - ${diamond.offsetHeight / 2}px)`;
+                    diamond.style.top = `${pos}%`;
                     diamond.style[side] = diamondOffsetFromEdge;
                     diamondsContainer.appendChild(diamond);
                 });
@@ -244,11 +239,15 @@
             const color = BALL_COLORS[num];
             const isStripe = num > 8;
 
-            ball.style.backgroundColor = color;
             let innerHTML = '';
+            
             if (isStripe) {
-                innerHTML += `<div class="ball-stripe"></div>`;
+                ball.style.backgroundColor = 'black';
+                innerHTML += `<div class="ball-stripe" style="background-color: ${color};"></div>`;
+            } else {
+                ball.style.backgroundColor = color;
             }
+            
             innerHTML += `<div class="ball-number"><span>${num}</span></div>`;
             ball.innerHTML = innerHTML;
 
